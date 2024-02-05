@@ -83,85 +83,137 @@ pub trait Currency: Clone {
     fn denom(&self) -> &str;
 }
 
-// pub enum Precision<T: Currency> {
-//     Precise(T, u8),
-//     Imprecise(T),
-// }
+pub trait Precision {
+    type T: Currency;
 
-// pub struct Coin<T: Currency> {
-//     amount: Uint128,
-//     denom: Precision<T>,
-// }
-
-/// Rate is T / U
-pub struct ExchangeRate<T, U>
-where
-    T: Currency,
-    U: Currency,
-{
-    numerator: T,
-    denominator: U,
-    rate: Decimal,
+    fn currency(&self) -> &Self::T;
 }
 
-impl<T, U> ExchangeRate<T, U>
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Precise<T: Currency> {
+    currency: T,
+    precision: u8,
+}
+impl<T> Precision for Precise<T>
 where
     T: Currency,
-    U: Currency,
 {
-    pub fn inverse(&self) -> Result<ExchangeRate<U, T>, String> {
-        let inv = self.rate.inv().ok_or("Cannot invert zero rate")?;
-        Ok(ExchangeRate {
-            numerator: self.denominator.clone(),
-            denominator: self.numerator.clone(),
-            rate: inv,
-        })
+    type T = T;
+
+    fn currency(&self) -> &T {
+        &self.currency
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Amount<T: Currency> {
-    amount: Uint128,
-    denom: T,
+pub struct Imprecise<T: Currency> {
+    currency: T,
+}
+impl<T> Precision for Imprecise<T>
+where
+    T: Currency,
+{
+    type T = T;
+
+    fn currency(&self) -> &T {
+        &self.currency
+    }
 }
 
-impl<T: Currency> Amount<T> {
-    pub fn from(coin: Coin, denom: T) -> Result<Self, String> {
+pub enum PrecisionType<T: Currency> {
+    Precise(Precise<T>),
+    Imprecise(Imprecise<T>),
+}
+
+impl<T: Currency> PrecisionType<T> {
+    pub fn currency(&self) -> &T {
+        match self {
+            PrecisionType::Precise(p) => p.currency(),
+            PrecisionType::Imprecise(p) => p.currency(),
+        }
+    }
+}
+
+pub struct Coin<T: Currency> {
+    amount: Uint128,
+    denom: PrecisionType<T>,
+}
+
+impl<T: Currency> Coin<T> {
+    pub fn from(coin: CwCoin, denom: T) -> Result<Self, String> {
         if coin.denom != denom.denom() {
             return Err(format!("Invalid denomination: {}", coin.denom));
         }
-        Ok(Amount {
+        Ok(Coin {
             amount: coin.amount,
-            denom,
+            denom: PrecisionType::Imprecise(Imprecise { currency: denom }),
         })
     }
 
-    pub fn exchange<U: Currency>(&self, rate: ExchangeRate<T, U>) -> Result<Amount<U>, String> {
-        // input is in T, and rate is in T/U, so divide to get U
-        let new_amount = self.amount * rate.inverse()?.rate;
-        Ok(Amount {
-            amount: new_amount,
-            denom: rate.denominator,
-        })
-    }
-}
-
-impl<T: Currency> Currency for Amount<T> {
-    fn denom(&self) -> &str {
-        self.denom.denom()
-    }
-}
-
-impl Amount<UnknownDenom> {
-    pub fn from_unknown(coin: Coin) -> Self {
-        Amount {
-            amount: coin.amount,
-            denom: UnknownDenom(coin.denom),
+    pub fn hydrate(&self, precision: u8) -> Coin<T> {
+        Coin {
+            amount: self.amount,
+            denom: PrecisionType::Precise(Precise {
+                currency: self.denom.currency().clone(),
+                precision,
+            }),
         }
     }
 }
 
-make_denom!(UnknownDenom);
+// impl<T: Currency> Coin<T> {
+//     pub fn from(coin: CwCoin, denom: T) -> Result<Self, String> {
+//         if coin.denom != denom.denom() {
+//             return Err(format!("Invalid denomination: {}", coin.denom));
+//         }
+//         Ok(Coin {
+//             amount: coin.amount,
+//             denom: PrecisionType::Imprecise(Imprecise { currency: denom }),
+//         })
+//     }
+
+//     pub fn hydrate(&self, precision: u8) -> Coin<T> {
+//         Coin {
+//             amount: self.amount,
+//             denom: PrecisionType::Precise(Precise {
+//                 currency: self.denom.currency().clone(),
+//                 precision,
+//             }),
+//         }
+//     }
+// }
+
+// impl<T: Currency> Amount<T> {
+//     pub fn from(coin: Coin, denom: T) -> Result<Self, String> {
+//         if coin.denom != denom.denom() {
+//             return Err(format!("Invalid denomination: {}", coin.denom));
+//         }
+//         Ok(Amount {
+//             amount: coin.amount,
+//             denom,
+//         })
+//     }
+
+//     pub fn exchange<U: Currency>(&self, rate: ExchangeRate<T, U>) -> Result<Amount<U>, String> {
+//         // input is in T, and rate is in T/U, so divide to get U
+//         let new_amount = self.amount * rate.inverse()?.rate;
+//         Ok(Amount {
+//             amount: new_amount,
+//             denom: rate.denominator,
+//         })
+//     }
+// }
+
+// impl Amount<UnknownDenom> {
+//     pub fn from_unknown(coin: Coin) -> Self {
+//         Amount {
+//             amount: coin.amount,
+//             denom: UnknownDenom(coin.denom),
+//         }
+//     }
+// }
+
+// make_denom!(UnknownDenom);
 
 #[cfg(test)]
 mod tests {
@@ -172,25 +224,26 @@ mod tests {
     make_static_denom!(USD, "uusd");
     make_static_denom!(EUR, "ueur");
 
-    fn get_exchange_rate<T: Currency>(denom: T) -> ExchangeRate<T, USD> {
-        // In an actual implementation, query oracle:
-        // let actual_rate = deps.querier.query_exchange_rate(denom)?;
-        ExchangeRate {
-            numerator: denom,
-            denominator: USD,
-            rate: Decimal::percent(108), // EUR is at $1.08, for example
-        }
-    }
+    // fn get_exchange_rate<T: Currency>(denom: T) -> ExchangeRate<T, USD> {
+    //     // In an actual implementation, query oracle:
+    //     // let actual_rate = deps.querier.query_exchange_rate(denom)?;
+    //     ExchangeRate {
+    //         numerator: denom,
+    //         denominator: USD,
+    //         rate: Decimal::percent(108), // EUR is at $1.08, for example
+    //     }
+    // }
 
     #[test]
     fn type_checked_currencies() {
         let test_coin = coin(1_000_000u128, "ueur");
-        let amount = Amount::from(test_coin, EUR).expect("Coin should be EUR");
-        let rate = get_exchange_rate(EUR);
-        let converted = amount.exchange(rate).expect("Conversion should work");
-        assert_eq!(converted.amount.u128(), 1_080_000);
+        let amount = Coin::from(test_coin, EUR).expect("Coin should be EUR");
+        // let amount = Amount::from(test_coin, EUR).expect("Coin should be EUR");
+        // let rate = get_exchange_rate(EUR);
+        // let converted = amount.exchange(rate).expect("Conversion should work");
+        // assert_eq!(converted.amount.u128(), 1_080_000);
 
-        let unknown_coin = coin(1_000_000u128, "ukuji");
-        let unknown_amount = Amount::from_unknown(unknown_coin);
+        // let unknown_coin = coin(1_000_000u128, "ukuji");
+        // let unknown_amount = Amount::from_unknown(unknown_coin);
     }
 }

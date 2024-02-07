@@ -1,6 +1,12 @@
-use std::marker::PhantomData;
+mod coin;
+mod exchange;
+mod precision;
+mod traits;
 
-use cosmwasm_std::{Coin as CwCoin, Decimal, Fraction, Uint128};
+pub use coin::*;
+pub use exchange::*;
+pub use precision::*;
+pub use traits::*;
 
 macro_rules! make_denom {
     ($name:ident) => {
@@ -10,6 +16,27 @@ macro_rules! make_denom {
         impl Currency for $name {
             fn denom(&self) -> &str {
                 &self.0
+            }
+        }
+
+        impl $name {
+            pub fn with_precision(&self, precision: u8) -> Precise<$name> {
+                Precise {
+                    currency: self.clone(),
+                    decimals: precision,
+                }
+            }
+
+            pub fn without_precision(&self) -> Imprecise<$name> {
+                Imprecise {
+                    currency: self.clone(),
+                }
+            }
+        }
+
+        impl Into<Imprecise<$name>> for $name {
+            fn into(self) -> Imprecise<$name> {
+                Imprecise { currency: self }
             }
         }
     };
@@ -29,6 +56,25 @@ macro_rules! make_static_denom {
         impl Currency for $name {
             fn denom(&self) -> &str {
                 $denom
+            }
+        }
+
+        impl $name {
+            pub fn with_precision(&self, precision: u8) -> Precise<$name> {
+                Precise {
+                    currency: $name,
+                    decimals: precision,
+                }
+            }
+
+            pub fn without_precision(&self) -> Imprecise<$name> {
+                Imprecise { currency: $name }
+            }
+        }
+
+        impl Into<Imprecise<$name>> for $name {
+            fn into(self) -> Imprecise<$name> {
+                Imprecise { currency: self }
             }
         }
     };
@@ -79,165 +125,36 @@ methods will all return Imprecise<Currency> types. An example signature is here:
 fn query_exchange_rate<T: Currency>(denom: impl AsRef<T>) -> StdResult<ExchangeRate<Imprecise<T>, Imprecise<USD>>>;
 */
 
-pub trait Currency: Clone {
-    fn denom(&self) -> &str;
-}
-
-pub trait Precision {
-    type T: Currency;
-
-    fn currency(&self) -> &Self::T;
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Precise<T: Currency> {
-    currency: T,
-    precision: u8,
-}
-impl<T> Precision for Precise<T>
-where
-    T: Currency,
-{
-    type T = T;
-
-    fn currency(&self) -> &T {
-        &self.currency
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Imprecise<T: Currency> {
-    currency: T,
-}
-impl<T> Precision for Imprecise<T>
-where
-    T: Currency,
-{
-    type T = T;
-
-    fn currency(&self) -> &T {
-        &self.currency
-    }
-}
-
-pub enum PrecisionType<T: Currency> {
-    Precise(Precise<T>),
-    Imprecise(Imprecise<T>),
-}
-
-impl<T: Currency> PrecisionType<T> {
-    pub fn currency(&self) -> &T {
-        match self {
-            PrecisionType::Precise(p) => p.currency(),
-            PrecisionType::Imprecise(p) => p.currency(),
-        }
-    }
-}
-
-pub struct Coin<T: Currency> {
-    amount: Uint128,
-    denom: PrecisionType<T>,
-}
-
-impl<T: Currency> Coin<T> {
-    pub fn from(coin: CwCoin, denom: T) -> Result<Self, String> {
-        if coin.denom != denom.denom() {
-            return Err(format!("Invalid denomination: {}", coin.denom));
-        }
-        Ok(Coin {
-            amount: coin.amount,
-            denom: PrecisionType::Imprecise(Imprecise { currency: denom }),
-        })
-    }
-
-    pub fn hydrate(&self, precision: u8) -> Coin<T> {
-        Coin {
-            amount: self.amount,
-            denom: PrecisionType::Precise(Precise {
-                currency: self.denom.currency().clone(),
-                precision,
-            }),
-        }
-    }
-}
-
-// impl<T: Currency> Coin<T> {
-//     pub fn from(coin: CwCoin, denom: T) -> Result<Self, String> {
-//         if coin.denom != denom.denom() {
-//             return Err(format!("Invalid denomination: {}", coin.denom));
-//         }
-//         Ok(Coin {
-//             amount: coin.amount,
-//             denom: PrecisionType::Imprecise(Imprecise { currency: denom }),
-//         })
-//     }
-
-//     pub fn hydrate(&self, precision: u8) -> Coin<T> {
-//         Coin {
-//             amount: self.amount,
-//             denom: PrecisionType::Precise(Precise {
-//                 currency: self.denom.currency().clone(),
-//                 precision,
-//             }),
-//         }
-//     }
-// }
-
-// impl<T: Currency> Amount<T> {
-//     pub fn from(coin: Coin, denom: T) -> Result<Self, String> {
-//         if coin.denom != denom.denom() {
-//             return Err(format!("Invalid denomination: {}", coin.denom));
-//         }
-//         Ok(Amount {
-//             amount: coin.amount,
-//             denom,
-//         })
-//     }
-
-//     pub fn exchange<U: Currency>(&self, rate: ExchangeRate<T, U>) -> Result<Amount<U>, String> {
-//         // input is in T, and rate is in T/U, so divide to get U
-//         let new_amount = self.amount * rate.inverse()?.rate;
-//         Ok(Amount {
-//             amount: new_amount,
-//             denom: rate.denominator,
-//         })
-//     }
-// }
-
-// impl Amount<UnknownDenom> {
-//     pub fn from_unknown(coin: Coin) -> Self {
-//         Amount {
-//             amount: coin.amount,
-//             denom: UnknownDenom(coin.denom),
-//         }
-//     }
-// }
-
 // make_denom!(UnknownDenom);
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::coin;
+    use cosmwasm_std::{coin, Decimal};
 
     use super::*;
 
     make_static_denom!(USD, "uusd");
     make_static_denom!(EUR, "ueur");
 
-    // fn get_exchange_rate<T: Currency>(denom: T) -> ExchangeRate<T, USD> {
-    //     // In an actual implementation, query oracle:
-    //     // let actual_rate = deps.querier.query_exchange_rate(denom)?;
-    //     ExchangeRate {
-    //         numerator: denom,
-    //         denominator: USD,
-    //         rate: Decimal::percent(108), // EUR is at $1.08, for example
-    //     }
-    // }
+    fn get_exchange_rate<T: Currency>(denom: Precise<T>) -> ExchangeRate<Precise<T>, Precise<USD>> {
+        // In an actual implementation, query oracle:
+        // let actual_rate = deps.querier.query_exchange_rate(denom)?;
+        let precision = denom.decimals;
+        ExchangeRate {
+            numerator: denom,
+            denominator: USD.with_precision(precision),
+            rate: Decimal::percent(108), // EUR is at $1.08, for example
+        }
+    }
 
     #[test]
     fn type_checked_currencies() {
-        let test_coin = coin(1_000_000u128, "ueur");
+        let test_coin = coin(1_000_000u128, "ueur"); // CosmWasm Coin
         let amount = Coin::from(test_coin, EUR).expect("Coin should be EUR");
+        let amount = amount.with_precision(6);
+
+        // let rate = get_exchange_rate();
+        println!("{:?}", amount);
         // let amount = Amount::from(test_coin, EUR).expect("Coin should be EUR");
         // let rate = get_exchange_rate(EUR);
         // let converted = amount.exchange(rate).expect("Conversion should work");

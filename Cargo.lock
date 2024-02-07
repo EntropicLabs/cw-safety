@@ -169,13 +169,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cw-money"
-version = "0.1.0"
-dependencies = [
- "cosmwasm-std",
-]
-
-[[package]]
 name = "der"
 version = "0.7.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -369,6 +362,13 @@ name = "libc"
 version = "0.2.153"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
+
+[[package]]
+name = "monetary"
+version = "0.1.0"
+dependencies = [
+ "cosmwasm-std",
+]
 
 [[package]]
 name = "once_cell"

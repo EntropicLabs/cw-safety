@@ -36,6 +36,11 @@ impl<T: Currency> Precise<T> {
 pub struct Imprecise<T: Currency> {
     pub(crate) currency: T,
 }
+impl<T: Currency> Imprecise<T> {
+    pub fn new(currency: T) -> Self {
+        Imprecise { currency }
+    }
+}
 impl<T: Currency> Precision for Imprecise<T> {
     type C = T;
     fn currency(&self) -> &T {

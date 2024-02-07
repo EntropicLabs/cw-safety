@@ -4,7 +4,7 @@ use cosmwasm_std::{Coin as CwCoin, Uint128};
 
 use crate::{
     Currency, Imprecise, Precise, Precision, PrecisionSelector, PrecisionType,
-    PrecisionTypeWrapper, Unverified,
+    PrecisionTypeWrapper, Unknown, Unverified,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -81,6 +81,15 @@ impl<T: Currency> Coin<Precise<T>> {
 impl<P: Precision> AsRef<Coin<P>> for Coin<P> {
     fn as_ref(&self) -> &Coin<P> {
         self
+    }
+}
+
+impl From<CwCoin> for Coin<Imprecise<Unknown>> {
+    fn from(val: CwCoin) -> Self {
+        Coin {
+            amount: val.amount,
+            denom: Imprecise::new(Unknown(val.denom)).select(),
+        }
     }
 }
 

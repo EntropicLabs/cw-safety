@@ -5,9 +5,9 @@ use cosmwasm_std::{Decimal, Uint128};
 use crate::{Coin, Currency, Exchange, Imprecise, Precise, Precision, PrecisionSelector};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ExchangeRate<N: Precision, D: Precision> {
-    pub(crate) from: N,
-    pub(crate) to: D,
+pub struct ExchangeRate<F: Precision, T: Precision> {
+    pub(crate) from: F,
+    pub(crate) to: T,
     /// from * rate = to
     pub(crate) rate: Decimal,
 }

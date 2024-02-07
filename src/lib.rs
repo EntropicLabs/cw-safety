@@ -34,9 +34,9 @@ macro_rules! make_denom {
             }
         }
 
-        impl Into<Imprecise<$name>> for $name {
-            fn into(self) -> Imprecise<$name> {
-                Imprecise { currency: self }
+        impl From<$name> for Imprecise<$name> {
+            fn from(currency: $name) -> Imprecise<$name> {
+                Imprecise { currency }
             }
         }
     };
@@ -72,13 +72,15 @@ macro_rules! make_static_denom {
             }
         }
 
-        impl Into<Imprecise<$name>> for $name {
-            fn into(self) -> Imprecise<$name> {
-                Imprecise { currency: self }
+        impl From<$name> for Imprecise<$name> {
+            fn from(_: $name) -> Imprecise<$name> {
+                Imprecise { currency: $name }
             }
         }
     };
 }
+
+make_denom!(Unknown);
 
 /*
 Here's the problem:
@@ -125,8 +127,6 @@ methods will all return Imprecise<Currency> types. An example signature is here:
 fn query_exchange_rate<T: Currency>(denom: impl AsRef<T>) -> StdResult<ExchangeRate<Imprecise<T>, Imprecise<USD>>>;
 */
 
-// make_denom!(UnknownDenom);
-
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::{coin, Decimal};
@@ -141,26 +141,35 @@ mod tests {
         // let actual_rate = deps.querier.query_exchange_rate(denom)?;
         let precision = denom.decimals;
         ExchangeRate {
-            numerator: denom,
-            denominator: USD.with_precision(precision),
+            from: denom,
+            to: USD.with_precision(precision),
             rate: Decimal::percent(108), // EUR is at $1.08, for example
         }
     }
 
     #[test]
     fn type_checked_currencies() {
-        let test_coin = coin(1_000_000u128, "ueur"); // CosmWasm Coin
-        let amount = Coin::from(test_coin, EUR).expect("Coin should be EUR");
-        let amount = amount.with_precision(6);
+        let test_coin: cosmwasm_std::Coin = coin(1_000_000u128, "ueur");
 
-        // let rate = get_exchange_rate();
-        println!("{:?}", amount);
-        // let amount = Amount::from(test_coin, EUR).expect("Coin should be EUR");
-        // let rate = get_exchange_rate(EUR);
-        // let converted = amount.exchange(rate).expect("Conversion should work");
-        // assert_eq!(converted.amount.u128(), 1_080_000);
+        // Either:
+        let _amount = Coin::imprecise(&test_coin, &EUR).expect("Coin should be EUR");
+        // Or:
+        let eur = EUR.with_precision(6);
+        let amount = Coin::precise(&test_coin, &eur).expect("Coin should be EUR");
 
-        // let unknown_coin = coin(1_000_000u128, "ukuji");
-        // let unknown_amount = Amount::from_unknown(unknown_coin);
+        let rate: ExchangeRate<Precise<EUR>, Precise<USD>> = get_exchange_rate(eur); // EUR/USD = 1.08
+        let converted = rate.apply(amount).expect("Conversion should work");
+        let converted_back = rate.apply_inv(&converted).expect("Conversion should work");
+
+        assert_eq!(
+            converted.amount().u128(),
+            1_080_000u128,
+            "EUR to USD output incorrect"
+        );
+        assert_eq!(
+            converted_back.amount().u128(),
+            1_000_000u128,
+            "USD to EUR output incorrect"
+        );
     }
 }

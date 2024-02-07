@@ -81,6 +81,7 @@ macro_rules! make_static_denom {
 }
 
 make_denom!(Unknown);
+make_static_denom!(Empty, "");
 
 /*
 Here's the problem:

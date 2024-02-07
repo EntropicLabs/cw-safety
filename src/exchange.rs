@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use cosmwasm_std::{Decimal, Uint128};
 
-use crate::{Coin, Currency, Exchange, Imprecise, Precise, Precision, PrecisionType};
+use crate::{Coin, Currency, Exchange, Imprecise, Precise, Precision, PrecisionSelector};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExchangeRate<N: Precision, D: Precision> {
@@ -10,6 +10,22 @@ pub struct ExchangeRate<N: Precision, D: Precision> {
     pub(crate) to: D,
     /// from * rate = to
     pub(crate) rate: Decimal,
+}
+
+#[inline]
+fn scale(delta: i16) -> Decimal {
+    let scale = Uint128::from(10u128.pow(u32::from(delta.unsigned_abs())));
+    match delta.cmp(&0) {
+        Ordering::Less => {
+            // From has less decimals than to, so we need to scale up
+            Decimal::from_ratio(scale, 1u128)
+        }
+        Ordering::Equal => Decimal::one(),
+        Ordering::Greater => {
+            // From has more decimals than to, so we need to scale down
+            Decimal::from_ratio(1u128, scale)
+        }
+    }
 }
 
 // ExchangeRate<Precise<T>, Precise<U>>
@@ -23,23 +39,12 @@ impl<T: Currency, U: Currency> Exchange<Precise<T>, Precise<U>>
 
         // We also need to scale the amount by the decimal delta.
         let delta = self.from.decimals as i16 - self.to.decimals as i16;
-        let scale = Uint128::from(10u128.pow(u32::from(delta.unsigned_abs())));
-        let scale = match delta.cmp(&0) {
-            Ordering::Less => {
-                // From has less decimals than to, so we need to scale up
-                Decimal::from_ratio(scale, 1u128)
-            }
-            Ordering::Equal => Decimal::one(),
-            Ordering::Greater => {
-                // From has more decimals than to, so we need to scale down
-                Decimal::from_ratio(1u128, scale)
-            }
-        };
+        let scale = scale(delta);
 
         let new_amount = converted * scale;
         Ok(Coin {
             amount: new_amount,
-            denom: PrecisionType::Precise(self.to.clone()),
+            denom: self.to.clone().select(),
         })
     }
 
@@ -48,23 +53,12 @@ impl<T: Currency, U: Currency> Exchange<Precise<T>, Precise<U>>
 
         // We also need to scale the amount by the decimal delta.
         let delta = self.to.decimals as i16 - self.from.decimals as i16;
-        let scale = Uint128::from(10u128.pow(u32::from(delta.unsigned_abs())));
-        let scale = match delta.cmp(&0) {
-            Ordering::Less => {
-                // To has less decimals than from, so we need to scale up
-                Decimal::from_ratio(scale, 1u128)
-            }
-            Ordering::Equal => Decimal::one(),
-            Ordering::Greater => {
-                // To has more decimals than from, so we need to scale down
-                Decimal::from_ratio(1u128, scale)
-            }
-        };
+        let scale = scale(delta);
 
         let new_amount = converted * scale;
         Ok(Coin {
             amount: new_amount,
-            denom: PrecisionType::Precise(self.from.clone()),
+            denom: self.from.clone().select(),
         })
     }
 }
@@ -79,10 +73,7 @@ impl<T: Currency, U: Currency> Exchange<Imprecise<T>, Precise<U>>
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: PrecisionType::Precise(Precise {
-                currency: self.to.currency().clone(),
-                decimals: self.to.decimals,
-            }),
+            denom: self.to.clone().into_imprecise().select(),
         })
     }
     fn apply_inv(&self, from: impl AsRef<Coin<Precise<U>>>) -> Result<Coin<Imprecise<T>>, String> {
@@ -90,9 +81,7 @@ impl<T: Currency, U: Currency> Exchange<Imprecise<T>, Precise<U>>
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: PrecisionType::Imprecise(Imprecise {
-                currency: self.from.currency().clone(),
-            }),
+            denom: self.from.clone().select(),
         })
     }
 }
@@ -106,9 +95,7 @@ impl<T: Currency, U: Currency> Exchange<Precise<T>, Imprecise<U>>
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: PrecisionType::Imprecise(Imprecise {
-                currency: self.to.currency().clone(),
-            }),
+            denom: self.to.clone().select(),
         })
     }
     fn apply_inv(
@@ -119,10 +106,7 @@ impl<T: Currency, U: Currency> Exchange<Precise<T>, Imprecise<U>>
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: PrecisionType::Precise(Precise {
-                currency: self.from.currency().clone(),
-                decimals: self.from.decimals,
-            }),
+            denom: self.from.clone().into_imprecise().select(),
         })
     }
 }
@@ -136,9 +120,7 @@ impl<T: Currency, U: Currency> Exchange<Imprecise<T>, Imprecise<U>>
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: PrecisionType::Imprecise(Imprecise {
-                currency: self.to.currency().clone(),
-            }),
+            denom: self.to.clone().select(),
         })
     }
     fn apply_inv(
@@ -149,9 +131,7 @@ impl<T: Currency, U: Currency> Exchange<Imprecise<T>, Imprecise<U>>
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: PrecisionType::Imprecise(Imprecise {
-                currency: self.from.currency().clone(),
-            }),
+            denom: self.from.clone().select(),
         })
     }
 }

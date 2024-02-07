@@ -2,12 +2,15 @@ use std::ops::{Add, Sub};
 
 use cosmwasm_std::{Coin as CwCoin, Uint128};
 
-use crate::{Currency, Imprecise, Precise, Precision, PrecisionType, Unverified};
+use crate::{
+    Currency, Imprecise, Precise, Precision, PrecisionSelector, PrecisionType,
+    PrecisionTypeWrapper, Unverified,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Coin<P: Precision> {
     pub(crate) amount: Uint128,
-    pub(crate) denom: PrecisionType<P::C>,
+    pub(crate) denom: PrecisionTypeWrapper<P>,
 }
 
 impl<P: Precision> Coin<P> {
@@ -16,11 +19,11 @@ impl<P: Precision> Coin<P> {
     }
 
     pub fn currency(&self) -> &P::C {
-        self.denom.currency()
+        self.denom.inner().currency()
     }
 
     pub fn denom(&self) -> &P {
-        match &self.denom {
+        match &self.denom.inner() {
             PrecisionType::Precise(p) => {
                 // This is safe because we know that the precision type is precise
                 unsafe { &*(p as *const Precise<P::C> as *const P) }
@@ -44,19 +47,21 @@ impl<T: Currency> Coin<Imprecise<T>> {
         }
         Ok(Coin {
             amount: coin.amount,
-            denom: PrecisionType::Imprecise(Imprecise {
+            denom: Imprecise {
                 currency: denom.clone(),
-            }),
+            }
+            .select(),
         })
     }
 
     pub fn with_precision(&self, precision: u8) -> Coin<Precise<T>> {
         Coin {
             amount: self.amount,
-            denom: PrecisionType::Precise(Precise {
-                currency: self.denom.currency().clone(),
+            denom: Precise {
+                currency: self.denom.inner().currency().clone(),
                 decimals: precision,
-            }),
+            }
+            .select(),
         }
     }
 }
@@ -68,7 +73,7 @@ impl<T: Currency> Coin<Precise<T>> {
         }
         Ok(Coin {
             amount: coin.amount,
-            denom: PrecisionType::Precise(denom.clone()),
+            denom: denom.clone().select(),
         })
     }
 }
@@ -82,7 +87,7 @@ impl<P: Precision> AsRef<Coin<P>> for Coin<P> {
 impl<T: Currency> Add for Coin<Imprecise<T>> {
     type Output = Coin<Imprecise<T>>;
     fn add(self, rhs: Self) -> Self::Output {
-        if self.denom.currency() != rhs.denom.currency() {
+        if self.denom.inner().currency() != rhs.denom.inner().currency() {
             panic!("Cannot add coins of different denominations");
         }
         Coin {
@@ -95,7 +100,7 @@ impl<T: Currency> Add for Coin<Imprecise<T>> {
 impl<T: Currency> Sub for Coin<Imprecise<T>> {
     type Output = Coin<Imprecise<T>>;
     fn sub(self, rhs: Self) -> Self::Output {
-        if self.denom.currency() != rhs.denom.currency() {
+        if self.denom.inner().currency() != rhs.denom.inner().currency() {
             panic!("Cannot subtract coins of different denominations");
         }
         Coin {

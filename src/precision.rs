@@ -40,6 +40,20 @@ impl<T: Currency> Imprecise<T> {
     pub fn new(currency: T) -> Self {
         Imprecise { currency }
     }
+
+    pub fn into_unverified(self, decimals: u8) -> Unverified<T> {
+        Unverified {
+            currency: self.currency,
+            decimals,
+        }
+    }
+
+    pub fn into_precise(self, decimals: u8) -> Precise<T> {
+        Precise {
+            currency: self.currency,
+            decimals,
+        }
+    }
 }
 impl<T: Currency> Precision for Imprecise<T> {
     type C = T;

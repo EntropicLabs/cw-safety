@@ -2,7 +2,9 @@ use std::cmp::Ordering;
 
 use cosmwasm_std::{Decimal, Uint128};
 
-use crate::{Coin, Currency, Exchange, Imprecise, Precise, Precision, PrecisionSelector};
+use crate::{
+    Coin, Currency, Exchange, Imprecise, Precise, Precision, PrecisionSelector, Unverified,
+};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ExchangeRate<F: Precision, T: Precision> {
@@ -67,21 +69,21 @@ impl<T: Currency, U: Currency> Exchange<Precise<T>, Precise<U>>
 impl<T: Currency, U: Currency> Exchange<Imprecise<T>, Precise<U>>
     for ExchangeRate<Imprecise<T>, Precise<U>>
 {
-    type OutPrecision<C: Currency> = Imprecise<C>;
-    fn apply(&self, from: impl AsRef<Coin<Imprecise<T>>>) -> Result<Coin<Imprecise<U>>, String> {
+    type OutPrecision<C: Currency> = Unverified<C>;
+    fn apply(&self, from: impl AsRef<Coin<Imprecise<T>>>) -> Result<Coin<Unverified<U>>, String> {
         let converted = from.as_ref().amount.mul_floor(self.rate);
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: self.to.clone().into_imprecise().select(),
+            denom: self.to.clone().into_unverified().select(),
         })
     }
-    fn apply_inv(&self, from: impl AsRef<Coin<Precise<U>>>) -> Result<Coin<Imprecise<T>>, String> {
+    fn apply_inv(&self, from: impl AsRef<Coin<Precise<U>>>) -> Result<Coin<Unverified<T>>, String> {
         let converted = from.as_ref().amount.div_floor(self.rate);
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: self.from.clone().select(),
+            denom: self.from.clone().into_unverified(self.to.decimals).select(),
         })
     }
 }
@@ -89,24 +91,24 @@ impl<T: Currency, U: Currency> Exchange<Imprecise<T>, Precise<U>>
 impl<T: Currency, U: Currency> Exchange<Precise<T>, Imprecise<U>>
     for ExchangeRate<Precise<T>, Imprecise<U>>
 {
-    type OutPrecision<C: Currency> = Imprecise<C>;
-    fn apply(&self, from: impl AsRef<Coin<Precise<T>>>) -> Result<Coin<Imprecise<U>>, String> {
+    type OutPrecision<C: Currency> = Unverified<C>;
+    fn apply(&self, from: impl AsRef<Coin<Precise<T>>>) -> Result<Coin<Unverified<U>>, String> {
         let converted = from.as_ref().amount.mul_floor(self.rate);
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: self.to.clone().select(),
+            denom: self.to.clone().into_unverified(self.from.decimals).select(),
         })
     }
     fn apply_inv(
         &self,
         from: impl AsRef<Coin<Imprecise<U>>>,
-    ) -> Result<Coin<Imprecise<T>>, String> {
+    ) -> Result<Coin<Unverified<T>>, String> {
         let converted = from.as_ref().amount.div_floor(self.rate);
         // No precision change since we don't know the output precision
         Ok(Coin {
             amount: converted,
-            denom: self.from.clone().into_imprecise().select(),
+            denom: self.from.clone().into_unverified().select(),
         })
     }
 }

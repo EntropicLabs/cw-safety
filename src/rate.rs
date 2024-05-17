@@ -4,7 +4,13 @@ use cosmwasm_std::{Decimal, Fraction, Uint128};
 
 use crate::{AmountU128, Denom, Precise};
 
-pub struct Rate<A: Denom, B: Denom>(Decimal, PhantomData<(A, B)>);
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
+pub struct Rate<A: Denom, B: Denom>(
+    Decimal,
+    #[cfg_attr(feature = "serde", serde(skip))] PhantomData<(A, B)>,
+);
 
 impl<A: Denom, B: Denom> Rate<A, B> {
     pub fn new(rate: Decimal) -> Self {
@@ -51,5 +57,37 @@ impl<A: Denom, B: Denom> Rate<Precise<A>, Precise<B>> {
         };
 
         Rate(rate, PhantomData)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use cosmwasm_std::Decimal;
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub struct A(pub String);
+    impl crate::Denom for A {
+        fn denom(&self) -> &str {
+            &self.0
+        }
+    }
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub struct B(pub String);
+    impl crate::Denom for B {
+        fn denom(&self) -> &str {
+            &self.0
+        }
+    }
+
+    #[test]
+    fn serialization() {
+        let rate = Rate::<A, B>::new(Decimal::percent(50));
+        let serialized = serde_json::to_string(&rate).unwrap();
+        assert_eq!(serialized, r#""0.5""#);
+
+        let deserialized: Rate<A, B> = serde_json::from_str(&serialized).unwrap();
+        assert_eq!(rate, deserialized);
     }
 }

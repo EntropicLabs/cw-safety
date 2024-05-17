@@ -10,6 +10,7 @@ pub trait Denom {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Precise<T: Denom> {
     denom: T,
     decimals: u8,

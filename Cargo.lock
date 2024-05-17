@@ -369,6 +369,7 @@ version = "0.0.0"
 dependencies = [
  "cosmwasm-std",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

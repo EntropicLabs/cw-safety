@@ -4,6 +4,8 @@ use crate::Coin;
 
 pub trait Currency: Clone + Debug + PartialEq + Eq {
     fn denom(&self) -> &str;
+    fn with_precision(&self, precision: u8) -> crate::Precise<Self>;
+    fn without_precision(&self) -> crate::Imprecise<Self>;
 }
 
 pub trait Precision {

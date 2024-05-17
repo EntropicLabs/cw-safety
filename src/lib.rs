@@ -1,4 +1,5 @@
 mod coin;
+mod currency;
 mod exchange;
 mod precision;
 mod traits;
@@ -8,79 +9,115 @@ pub use exchange::*;
 pub use precision::*;
 pub use traits::*;
 
+#[macro_export]
+// macro_rules! make_denom {
+//     ($name:ident) => {
+//         impl $crate::Currency for $name {
+//             fn denom(&self) -> &str {
+//                 &self.0
+//             }
+//             fn with_precision(&self, precision: u8) -> $crate::Precise<$name> {
+//                 $crate::Precise::new(self.clone(), precision)
+//             }
+
+//             fn without_precision(&self) -> $crate::Imprecise<$name> {
+//                 $crate::Imprecise::new(self.clone())
+//             }
+//         }
+
+//         impl $name {
+//             pub fn as_unknown(&self) -> $crate::Unknown {
+//                 $crate::Unknown(self.0.clone())
+//             }
+//         }
+
+//         impl From<$name> for $crate::Imprecise<$name> {
+//             fn from(currency: $name) -> $crate::Imprecise<$name> {
+//                 $crate::Imprecise::new(currency)
+//             }
+//         }
+//     };
+// }
+
+#[macro_export]
 macro_rules! make_denom {
-    ($name:ident) => {
-        #[derive(Clone, Debug, PartialEq, Eq)]
-        pub struct $name(String);
+    ($name:ident, $denom:expr) => {
+        mod $name {
+            use std::sync::OnceLock;
 
-        impl Currency for $name {
-            fn denom(&self) -> &str {
-                &self.0
-            }
-        }
+            use $crate::Currency;
 
-        impl $name {
-            pub fn with_precision(&self, precision: u8) -> Precise<$name> {
-                Precise {
-                    currency: self.clone(),
-                    decimals: precision,
+            #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+            pub struct $name(&'static str);
+
+            static DENOM: OnceLock<String> = OnceLock::new();
+            impl $name {
+                pub fn init(denom: String) -> Result<Self, String> {
+                    DENOM.set(denom)?;
+                    Ok(Self::new().unwrap())
+                }
+
+                pub fn new() -> Option<Self> {
+                    DENOM.get().map(|d| Self(d.as_str()))
                 }
             }
 
-            pub fn without_precision(&self) -> Imprecise<$name> {
-                Imprecise {
-                    currency: self.clone(),
+            impl Currency for $name {
+                fn denom(&self) -> &'static str {
+                    DENOM.get().unwrap()
                 }
-            }
-        }
 
-        impl From<$name> for Imprecise<$name> {
-            fn from(currency: $name) -> Imprecise<$name> {
-                Imprecise { currency }
+                fn with_precision(&self, precision: u8) -> $crate::Precise<Self> {
+                    $crate::Precise::new(*self, precision)
+                }
+
+                fn without_precision(&self) -> $crate::Imprecise<Self> {
+                    $crate::Imprecise::new(*self)
+                }
             }
         }
     };
 }
 
+#[macro_export]
 macro_rules! make_static_denom {
     ($name:ident, $denom: expr) => {
-        #[allow(
-            non_camel_case_types,
-            non_snake_case,
-            non_upper_case_globals,
-            clippy::upper_case_acronyms
-        )]
-        #[derive(Clone, Debug, PartialEq, Eq)]
-        pub struct $name;
-
-        impl Currency for $name {
+        impl $crate::Currency for $name {
             fn denom(&self) -> &str {
                 $denom
             }
+            fn with_precision(&self, precision: u8) -> $crate::Precise<$name> {
+                $crate::Precise::new($name, precision)
+            }
+            fn without_precision(&self) -> $crate::Imprecise<$name> {
+                $crate::Imprecise::new($name)
+            }
         }
 
         impl $name {
-            pub fn with_precision(&self, precision: u8) -> Precise<$name> {
-                Precise {
-                    currency: $name,
-                    decimals: precision,
-                }
-            }
-
-            pub fn without_precision(&self) -> Imprecise<$name> {
-                Imprecise { currency: $name }
+            pub fn as_unknown(&self) -> $crate::Unknown {
+                $crate::Unknown($denom.to_string())
             }
         }
 
-        impl From<$name> for Imprecise<$name> {
-            fn from(_: $name) -> Imprecise<$name> {
-                Imprecise { currency: $name }
+        impl From<$name> for $crate::Imprecise<$name> {
+            fn from(_: $name) -> $crate::Imprecise<$name> {
+                $crate::Imprecise::new($name)
             }
         }
     };
 }
 
+#[derive(
+    Clone, Debug, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize, ::schemars::JsonSchema,
+)]
+pub struct Unknown(pub String);
 make_denom!(Unknown);
+
+#[derive(
+    Clone, Debug, PartialEq, Eq, ::serde::Serialize, ::serde::Deserialize, ::schemars::JsonSchema,
+)]
+pub struct Empty;
 make_static_denom!(Empty, "");
 
 /*
@@ -134,7 +171,14 @@ mod tests {
 
     use super::*;
 
+    #[allow(clippy::upper_case_acronyms)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub struct USD;
     make_static_denom!(USD, "uusd");
+
+    #[allow(clippy::upper_case_acronyms)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    pub struct EUR;
     make_static_denom!(EUR, "ueur");
 
     fn get_exchange_rate<T: Currency>(denom: Precise<T>) -> ExchangeRate<Precise<T>, Precise<USD>> {

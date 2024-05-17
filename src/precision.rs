@@ -1,8 +1,11 @@
 use std::marker::PhantomData;
 
-use crate::{Currency, Precision};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+use crate::{Currency, Precision, Unknown};
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 /// A currency with verified decimal precision information
 pub struct Precise<T> {
     pub(crate) currency: T,
@@ -17,6 +20,14 @@ impl<T: Currency> Precision for Precise<T> {
 }
 
 impl<T: Currency> Precise<T> {
+    pub fn new(currency: T, decimals: u8) -> Self {
+        Precise { currency, decimals }
+    }
+
+    pub fn decimals(&self) -> u8 {
+        self.decimals
+    }
+
     pub fn into_imprecise(self) -> Imprecise<T> {
         Imprecise {
             currency: self.currency,
@@ -26,6 +37,13 @@ impl<T: Currency> Precise<T> {
     pub fn into_unverified(self) -> Unverified<T> {
         Unverified {
             currency: self.currency,
+            decimals: self.decimals,
+        }
+    }
+
+    pub fn map_unknown(&self) -> Precise<Unknown> {
+        Precise {
+            currency: Unknown(self.currency.denom().to_string()),
             decimals: self.decimals,
         }
     }
@@ -52,6 +70,12 @@ impl<T: Currency> Imprecise<T> {
         Precise {
             currency: self.currency,
             decimals,
+        }
+    }
+
+    pub fn map_unknown(&self) -> Imprecise<Unknown> {
+        Imprecise {
+            currency: Unknown(self.currency.denom().to_string()),
         }
     }
 }

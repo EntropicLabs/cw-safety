@@ -368,6 +368,8 @@ name = "monetary"
 version = "0.0.0"
 dependencies = [
  "cosmwasm-std",
+ "schemars",
+ "serde",
 ]
 
 [[package]]

@@ -14,6 +14,27 @@ pub struct ExchangeRate<F: Precision, T: Precision> {
     pub(crate) rate: Decimal,
 }
 
+impl<F: Precision, T: Precision> ExchangeRate<F, T> {
+    pub fn new(from: F, to: T, rate: Decimal) -> Option<Self> {
+        if rate.is_zero() {
+            return None;
+        }
+        Some(Self { from, to, rate })
+    }
+
+    pub fn from(&self) -> &F {
+        &self.from
+    }
+
+    pub fn to(&self) -> &T {
+        &self.to
+    }
+
+    pub fn rate(&self) -> Decimal {
+        self.rate
+    }
+}
+
 #[inline]
 fn scale(delta: i16) -> Decimal {
     let scale = Uint128::from(10u128.pow(u32::from(delta.unsigned_abs())));

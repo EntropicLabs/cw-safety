@@ -364,7 +364,7 @@ checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
 
 [[package]]
 name = "monetary"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "cosmwasm-std",
  "serde",

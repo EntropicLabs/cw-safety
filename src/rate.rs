@@ -1,12 +1,47 @@
-use std::{cmp::Ordering, marker::PhantomData};
+use std::{
+    cmp::Ordering,
+    marker::PhantomData,
+    ops::{Div, Mul},
+};
 
 use cosmwasm_std::{Decimal, Fraction, Uint128};
 
 use crate::{AmountU128, Precise};
 
+pub trait ForwardExchange<A, B> {
+    fn forward_floor(&self, rate: Rate<A, B>) -> AmountU128<B>;
+    fn forward_ceil(&self, rate: Rate<A, B>) -> AmountU128<B>;
+}
+
+impl<A, B> ForwardExchange<A, B> for AmountU128<A> {
+    fn forward_floor(&self, rate: Rate<A, B>) -> AmountU128<B> {
+        rate.forward_floor(self)
+    }
+
+    fn forward_ceil(&self, rate: Rate<A, B>) -> AmountU128<B> {
+        rate.forward_ceil(self)
+    }
+}
+
+pub trait ReverseExchange<A, B> {
+    fn reverse_floor(&self, rate: Rate<A, B>) -> AmountU128<A>;
+    fn reverse_ceil(&self, rate: Rate<A, B>) -> AmountU128<A>;
+}
+
+impl<A, B> ReverseExchange<A, B> for AmountU128<B> {
+    fn reverse_floor(&self, rate: Rate<A, B>) -> AmountU128<A> {
+        rate.reverse_floor(self)
+    }
+
+    fn reverse_ceil(&self, rate: Rate<A, B>) -> AmountU128<A> {
+        rate.reverse_ceil(self)
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
+#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
 pub struct Rate<A, B>(
     Decimal,
     #[cfg_attr(feature = "serde", serde(skip))] PhantomData<(A, B)>,
@@ -21,19 +56,19 @@ impl<A, B> Rate<A, B> {
         self.0
     }
 
-    pub fn forward_floor(&self, amount: AmountU128<A>) -> AmountU128<B> {
+    pub fn forward_floor(&self, amount: &AmountU128<A>) -> AmountU128<B> {
         AmountU128::new(amount.0.mul_floor(self.0))
     }
 
-    pub fn forward_ceil(&self, amount: AmountU128<A>) -> AmountU128<B> {
+    pub fn forward_ceil(&self, amount: &AmountU128<A>) -> AmountU128<B> {
         AmountU128::new(amount.0.mul_ceil(self.0))
     }
 
-    pub fn reverse_floor(&self, amount: AmountU128<B>) -> AmountU128<A> {
+    pub fn reverse_floor(&self, amount: &AmountU128<B>) -> AmountU128<A> {
         AmountU128::new(amount.0.div_floor(self.0))
     }
 
-    pub fn reverse_ceil(&self, amount: AmountU128<B>) -> AmountU128<A> {
+    pub fn reverse_ceil(&self, amount: &AmountU128<B>) -> AmountU128<A> {
         AmountU128::new(amount.0.div_ceil(self.0))
     }
 }
@@ -57,6 +92,28 @@ impl<A, B> Rate<Precise<A>, Precise<B>> {
         };
 
         Rate(rate, PhantomData)
+    }
+}
+
+impl<A, B, C> Mul<Rate<B, C>> for Rate<A, B> {
+    type Output = Rate<A, C>;
+
+    fn mul(self, rhs: Rate<B, C>) -> Self::Output {
+        Rate(self.0 * rhs.0, PhantomData)
+    }
+}
+
+impl<A, B, C> Div<Rate<A, B>> for Rate<B, C> {
+    type Output = Rate<A, C>;
+
+    fn div(self, rhs: Rate<A, B>) -> Self::Output {
+        Rate(self.0 / rhs.0, PhantomData)
+    }
+}
+
+impl<A, B> std::fmt::Display for Rate<A, B> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

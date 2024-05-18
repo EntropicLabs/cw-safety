@@ -11,7 +11,7 @@ repository = "https://github.com/AmitPr/monetary"
 default = ["serde"]
 
 [dependencies]
-cosmwasm-std = { version = "1.5.4", default-features = false }
+cosmwasm-std = { version = "*", default-features = false }
 # schemars = "0.8.16"
 serde = { version = "1.0", features = ["derive"], optional = true }
 

@@ -2,17 +2,17 @@ use std::{cmp::Ordering, marker::PhantomData};
 
 use cosmwasm_std::{Decimal, Fraction, Uint128};
 
-use crate::{AmountU128, Denom, Precise};
+use crate::{AmountU128, Precise};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
-pub struct Rate<A: Denom, B: Denom>(
+pub struct Rate<A, B>(
     Decimal,
     #[cfg_attr(feature = "serde", serde(skip))] PhantomData<(A, B)>,
 );
 
-impl<A: Denom, B: Denom> Rate<A, B> {
+impl<A, B> Rate<A, B> {
     pub fn new(rate: Decimal) -> Self {
         Rate(rate, PhantomData)
     }
@@ -38,7 +38,7 @@ impl<A: Denom, B: Denom> Rate<A, B> {
     }
 }
 
-impl<A: Denom, B: Denom> Rate<Precise<A>, Precise<B>> {
+impl<A, B> Rate<Precise<A>, Precise<B>> {
     pub fn new_precise(rate: Decimal, from: &Precise<A>, to: &Precise<B>) -> Self {
         let a_dec = from.decimals();
         let b_dec = to.decimals();
@@ -65,21 +65,11 @@ mod test {
     use super::*;
     use cosmwasm_std::Decimal;
 
-    #[derive(Clone, Debug, PartialEq, Eq)]
-    pub struct A(pub String);
-    impl crate::Denom for A {
-        fn denom(&self) -> &str {
-            &self.0
-        }
-    }
+    #[derive(Clone, Debug, PartialEq, Eq, Copy)]
+    pub struct A;
 
-    #[derive(Clone, Debug, PartialEq, Eq)]
-    pub struct B(pub String);
-    impl crate::Denom for B {
-        fn denom(&self) -> &str {
-            &self.0
-        }
-    }
+    #[derive(Clone, Debug, PartialEq, Eq, Copy)]
+    pub struct B;
 
     #[test]
     fn serialization() {

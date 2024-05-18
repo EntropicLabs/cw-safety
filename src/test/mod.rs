@@ -2,28 +2,17 @@
 use super::*;
 use cosmwasm_std::{Decimal, Uint128};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CurrencyA(pub String);
-impl Denom for CurrencyA {
-    fn denom(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct CurrencyB(pub String);
-impl Denom for CurrencyB {
-    fn denom(&self) -> &str {
-        &self.0
-    }
-}
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+pub struct CurrencyA;
+#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+pub struct CurrencyB;
 
 #[test]
 fn do_something() {
-    let a = CurrencyA("A".to_string());
-    let b = CurrencyB("B".to_string());
-    let precise_a = a.with_decimals(6);
-    let precise_b = b.with_decimals(6);
+    let a = CurrencyA;
+    let b = CurrencyB;
+    let precise_a = Precise::new(a, 6);
+    let precise_b = Precise::new(b, 6);
 
     let amount = AmountU128::new(Uint128::from(1_000_000u128));
     let rate = Rate::<CurrencyA, CurrencyB>::new(Decimal::percent(50));

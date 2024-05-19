@@ -16,7 +16,8 @@ pub struct AmountU128<T>(
 );
 
 impl<T> AmountU128<T> {
-    pub fn new(amount: Uint128) -> Self {
+    #[inline]
+    pub const fn new(amount: Uint128) -> Self {
         AmountU128(amount, PhantomData)
     }
 
@@ -34,55 +35,39 @@ impl<T> AmountU128<T> {
     }
 
     pub fn checked_add(self, other: Self) -> Result<Self, OverflowError> {
-        Ok(Self(self.0.checked_add(other.0)?, PhantomData))
+        Ok(Self::new(self.0.checked_add(other.0)?))
     }
 
     pub fn checked_sub(self, other: Self) -> Result<Self, OverflowError> {
-        Ok(Self(self.0.checked_sub(other.0)?, PhantomData))
+        Ok(Self::new(self.0.checked_sub(other.0)?))
     }
 
     pub fn checked_mul(self, other: Self) -> Result<Self, OverflowError> {
-        Ok(Self(self.0.checked_mul(other.0)?, PhantomData))
+        Ok(Self::new(self.0.checked_mul(other.0)?))
     }
 
     pub fn checked_div(self, other: Self) -> Result<Self, DivideByZeroError> {
-        Ok(Self(self.0.checked_div(other.0)?, PhantomData))
+        Ok(Self::new(self.0.checked_div(other.0)?))
     }
 
     #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn saturating_add(self, other: Self) -> Self {
-        Self(self.0.saturating_add(other.0), PhantomData)
+        Self::new(self.0.saturating_add(other.0))
     }
 
     #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn saturating_sub(self, other: Self) -> Self {
-        Self(self.0.saturating_sub(other.0), PhantomData)
+        Self::new(self.0.saturating_sub(other.0))
     }
 
     #[must_use = "this returns the result of the operation, without modifying the original"]
     pub fn saturating_mul(self, other: Self) -> Self {
-        Self(self.0.saturating_mul(other.0), PhantomData)
-    }
-
-    /// Strict integer addition. Computes `self + rhs`, panicking if overflow occurred.
-    ///
-    /// This is the same as [`Uint128::add`] but const.
-    #[must_use = "this returns the result of the operation, without modifying the original"]
-    pub const fn strict_add(self, rhs: Self) -> Self {
-        Self(self.0.strict_add(rhs.0), PhantomData)
-    }
-
-    /// Strict integer subtraction. Computes `self - rhs`, panicking if overflow occurred.
-    ///
-    /// This is the same as [`Uint128::sub`] but const.
-    #[must_use = "this returns the result of the operation, without modifying the original"]
-    pub const fn strict_sub(self, other: Self) -> Self {
-        Self(self.0.strict_sub(other.0), PhantomData)
+        Self::new(self.0.saturating_mul(other.0))
     }
 
     #[must_use = "this returns the result of the operation, without modifying the original"]
     pub const fn abs_diff(self, other: Self) -> Self {
-        Self(self.0.abs_diff(other.0), PhantomData)
+        Self::new(self.0.abs_diff(other.0))
     }
 }
 
@@ -90,7 +75,7 @@ impl<T> std::ops::Add for AmountU128<T> {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
-        Self(self.0 + rhs.0, PhantomData)
+        Self::new(self.0 + rhs.0)
     }
 }
 
@@ -98,7 +83,7 @@ impl<T> std::ops::Sub for AmountU128<T> {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0 - rhs.0, PhantomData)
+        Self::new(self.0 - rhs.0)
     }
 }
 
@@ -106,7 +91,7 @@ impl<T> std::ops::Mul for AmountU128<T> {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        Self(self.0 * rhs.0, PhantomData)
+        Self::new(self.0 * rhs.0)
     }
 }
 
@@ -114,7 +99,7 @@ impl<T> std::ops::Div for AmountU128<T> {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        Self(self.0 / rhs.0, PhantomData)
+        Self::new(self.0 / rhs.0)
     }
 }
 

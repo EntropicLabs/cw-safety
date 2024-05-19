@@ -40,8 +40,8 @@ impl<A, B> ReverseExchange<A, B> for AmountU128<B> {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
-#[cfg_attr(feature = "schema", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "serde", serde(transparent, bound = ""))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Rate<A, B>(
     Decimal,
     #[cfg_attr(feature = "serde", serde(skip))] PhantomData<(A, B)>,
@@ -91,7 +91,7 @@ impl<A, B> Rate<Precise<A>, Precise<B>> {
             ),
         };
 
-        Rate(rate, PhantomData)
+        Self::new(rate)
     }
 }
 
@@ -99,7 +99,7 @@ impl<A, B, C> Mul<Rate<B, C>> for Rate<A, B> {
     type Output = Rate<A, C>;
 
     fn mul(self, rhs: Rate<B, C>) -> Self::Output {
-        Rate(self.0 * rhs.0, PhantomData)
+        Self::Output::new(self.0 * rhs.0)
     }
 }
 
@@ -107,7 +107,7 @@ impl<A, B, C> Div<Rate<A, B>> for Rate<B, C> {
     type Output = Rate<A, C>;
 
     fn div(self, rhs: Rate<A, B>) -> Self::Output {
-        Rate(self.0 / rhs.0, PhantomData)
+        Self::Output::new(self.0 / rhs.0)
     }
 }
 

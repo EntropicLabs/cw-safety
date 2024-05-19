@@ -1,0 +1,24 @@
+[package]
+name = "monetary"
+version = "0.0.2"
+authors = ["Amit Prasad<mail@amitprasad.dev>"]
+edition = "2021"
+description = "Compile-time type-checked monetary operations"
+license = "Apache-2.0"
+repository = "https://github.com/AmitPr/monetary"
+
+[features]
+default = ["serde", "schemars"]
+serde = ["dep:serde", "monetary-macros/serde"]
+schemars = ["dep:schemars", "monetary-macros/schemars"]
+
+[dependencies]
+monetary-macros = { workspace = true }
+cosmwasm-std = { workspace = true, default-features = false, features = [
+    "std",
+] }
+serde = { workspace = true, features = ["derive"], optional = true }
+schemars = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

@@ -1,14 +1,10 @@
 use std::marker::PhantomData;
 
 use cosmwasm_std::{DivideByZeroError, OverflowError, Uint128};
-#[cfg(feature = "schemars")]
-use schemars::JsonSchema;
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(transparent))]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 pub struct AmountU128<T>(
     pub(crate) Uint128,

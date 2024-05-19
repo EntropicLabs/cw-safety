@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 #[cfg(all(feature = "serde", feature = "schemars"))]
-pub trait Denomination<'de>:
+pub unsafe trait Denomination<'de>:
     Copy
     + Default
     + Eq
@@ -13,16 +13,19 @@ pub trait Denomination<'de>:
 }
 
 #[cfg(all(feature = "serde", not(feature = "schemars")))]
-pub trait Denomination<'de>:
+pub unsafe trait Denomination<'de>:
     Copy + Default + Eq + PartialEq + serde::Serialize + serde::de::Deserialize<'de>
 {
 }
 
 #[cfg(all(feature = "schemars", not(feature = "serde")))]
-pub trait Denomination: Copy + Default + Eq + PartialEq + schemars::JsonSchema {}
+pub unsafe trait Denomination:
+    Copy + Default + Eq + PartialEq + schemars::JsonSchema
+{
+}
 
 #[cfg(not(any(feature = "serde", feature = "schemars")))]
-pub trait Denomination: Copy + Default + Eq + PartialEq {}
+pub unsafe trait Denomination: Copy + Default + Eq + PartialEq {}
 
 #[derive(Clone, Debug, PartialEq, Eq, Copy)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

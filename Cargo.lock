@@ -367,9 +367,21 @@ name = "monetary"
 version = "0.0.2"
 dependencies = [
  "cosmwasm-std",
+ "monetary-macros",
  "schemars",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "monetary-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "schemars",
+ "serde",
+ "syn 2.0.64",
 ]
 
 [[package]]

@@ -1,0 +1,21 @@
+[package]
+name = "monetary-macros"
+version = "0.1.0"
+authors = ["Amit Prasad<mail@amitprasad.dev>"]
+edition = "2021"
+description = "Macros for monetary crate"
+license = "Apache-2.0"
+repository = "https://github.com/AmitPr/monetary"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+serde = { workspace = true, features = ["derive"], optional = true }
+schemars = { workspace = true, optional = true }
+quote = { version = "1.0.36" }
+syn = { version = "2.0.64", features = ["full"] }
+proc-macro2 = { version = "1.0.82" }
+
+[features]
+default = ["serde", "schemars"]

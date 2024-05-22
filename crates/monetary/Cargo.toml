@@ -1,6 +1,6 @@
 [package]
 name = "monetary"
-version = "0.0.2"
+version = "0.0.3"
 authors = ["Amit Prasad<mail@amitprasad.dev>"]
 edition = "2021"
 description = "Compile-time type-checked monetary operations"
@@ -19,6 +19,7 @@ cosmwasm-std = { workspace = true, default-features = false, features = [
 ] }
 serde = { workspace = true, features = ["derive"], optional = true }
 schemars = { workspace = true, optional = true }
+thiserror = "1"
 
 [dev-dependencies]
 serde_json = { workspace = true }

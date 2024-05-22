@@ -1,6 +1,6 @@
 [package]
 name = "monetary-macros"
-version = "0.1.0"
+version = "0.0.3"
 authors = ["Amit Prasad<mail@amitprasad.dev>"]
 edition = "2021"
 description = "Macros for monetary crate"
@@ -16,6 +16,7 @@ schemars = { workspace = true, optional = true }
 quote = { version = "1.0.36" }
 syn = { version = "2.0.64", features = ["full"] }
 proc-macro2 = { version = "1.0.82" }
+proc-macro-crate = "3.1.0"
 
 [features]
 default = ["serde", "schemars"]

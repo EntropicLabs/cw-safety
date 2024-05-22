@@ -1,10 +1,18 @@
 mod amount;
+mod coin;
 mod denom;
+mod error;
+mod payment;
 mod rate;
 
 pub use amount::*;
+pub use coin::*;
 pub use denom::*;
+pub use error::*;
+pub use payment::*;
 pub use rate::*;
+
+pub use monetary_macros::*;
 
 #[cfg(test)]
 mod test;

@@ -1,22 +1,31 @@
 use std::marker::PhantomData;
 
+use cosmwasm_std::{Addr, BankMsg};
+
+use crate::{AmountU128, CheckedCoin};
+
+/// Marker trait for a Zero-Sized-Type representing a denomination.
+/// You'll likely want to implement this trait simply by declaring an empty struct,
+/// and then using the `#[denom]` attribute macro on it. [`monetary_macros::denom`]
+///
+/// # Safety
+/// This trait is marked as unsafe because it should likely only be implemented by
+/// using the `#[denom]` attribute macro. Implementing this trait manually, is
+/// therefore explicitly marked.
 #[cfg(all(feature = "serde", feature = "schemars"))]
-pub unsafe trait Denomination<'de>:
+pub unsafe trait Denomination:
     Copy
     + Default
     + Eq
     + PartialEq
-    + serde::Serialize
-    + serde::de::Deserialize<'de>
     + schemars::JsonSchema
+    + serde::Serialize
+    + serde::de::DeserializeOwned
 {
 }
 
 #[cfg(all(feature = "serde", not(feature = "schemars")))]
-pub unsafe trait Denomination<'de>:
-    Copy + Default + Eq + PartialEq + serde::Serialize + serde::de::Deserialize<'de>
-{
-}
+pub unsafe trait Denomination: Copy + Default + Eq + PartialEq {}
 
 #[cfg(all(feature = "schemars", not(feature = "serde")))]
 pub unsafe trait Denomination:
@@ -27,13 +36,15 @@ pub unsafe trait Denomination:
 #[cfg(not(any(feature = "serde", feature = "schemars")))]
 pub unsafe trait Denomination: Copy + Default + Eq + PartialEq {}
 
-#[derive(Clone, Debug, PartialEq, Eq, Copy)]
+#[derive(Clone, Debug, PartialEq, Eq, Copy, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub struct Precise<T> {
     denom: T,
     decimals: u8,
 }
+
+unsafe impl<T: Denomination> Denomination for Precise<T> {}
 
 impl<T> Precise<T> {
     pub fn new(denom: T, decimals: u8) -> Self {
@@ -49,7 +60,7 @@ impl<T> Precise<T> {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 #[cfg_attr(feature = "serde", serde(transparent))]
@@ -60,9 +71,9 @@ pub struct Denom<T> {
 }
 
 impl<T> Denom<T> {
-    pub fn new(repr: String) -> Self {
+    pub fn new(repr: impl ToString) -> Self {
         Denom {
-            repr,
+            repr: repr.to_string(),
             denom: PhantomData,
         }
     }
@@ -70,15 +81,68 @@ impl<T> Denom<T> {
     pub fn repr(&self) -> &str {
         &self.repr
     }
+
+    pub fn coin(&self, amount: AmountU128<T>) -> CheckedCoin<T> {
+        CheckedCoin {
+            denom: self.clone(),
+            amount,
+        }
+    }
+
+    pub fn coins(&self, amount: AmountU128<T>) -> Vec<CheckedCoin<T>> {
+        vec![self.coin(amount)]
+    }
+
+    pub fn send(&self, to: &Addr, amount: AmountU128<T>) -> BankMsg {
+        BankMsg::Send {
+            to_address: to.to_string(),
+            amount: vec![self.coin(amount).into()],
+        }
+    }
+}
+
+impl<T> ToString for Denom<T> {
+    fn to_string(&self) -> String {
+        self.repr.clone()
+    }
+}
+
+impl<T> ToString for &Denom<T> {
+    fn to_string(&self) -> String {
+        self.repr.clone()
+    }
+}
+
+impl<T> From<Denom<T>> for String {
+    fn from(val: Denom<T>) -> Self {
+        val.repr
+    }
+}
+
+impl<T> From<&Denom<T>> for String {
+    fn from(val: &Denom<T>) -> Self {
+        val.repr.clone()
+    }
+}
+
+impl<T> Clone for Denom<T> {
+    fn clone(&self) -> Self {
+        Denom {
+            repr: self.repr.clone(),
+            denom: PhantomData,
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
+    use monetary_macros::denom;
+
     use super::*;
 
-    #[derive(Clone, Debug, PartialEq, Eq, Copy)]
+    #[denom]
     pub struct CurrencyA;
-    #[derive(Clone, Debug, PartialEq, Eq, Copy)]
+    #[denom]
     pub struct CurrencyB;
 
     #[test]

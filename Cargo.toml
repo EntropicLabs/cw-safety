@@ -6,7 +6,7 @@ license = "Apache-2.0"
 repository = "https://github.com/AmitPr/monetary"
 
 [workspace.dependencies]
-monetary-macros = { path = "crates/monetary-macros" }
+monetary-macros = { version = "0.0.3", path = "crates/monetary-macros" }
 monetary = { path = "crates/monetary" }
 
 cosmwasm-std = { version = ">=1, <3" }

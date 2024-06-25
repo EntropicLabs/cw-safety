@@ -1,0 +1,14 @@
+[package]
+name = "events"
+version = "0.0.0"
+authors = ["Amit Prasad<mail@amitprasad.dev>"]
+edition = "2021"
+description = "Strongly typed events for CosmWasm"
+license = "Apache-2.0"
+repository = "https://github.com/EntropicLabs/cw-safety"
+
+[dependencies]
+cosmwasm-schema = { workspace = true }
+cosmwasm-std = { workspace = true, default-features = false }
+serde-json-wasm = { workspace = true }
+cw-events-macros = { workspace = true }

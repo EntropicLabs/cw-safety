@@ -189,10 +189,10 @@ mod test {
     #[test]
     fn serialization() {
         let a = AmountU128::<Denom>::new(12345u128.into());
-        let serialized = serde_json::to_string(&a).unwrap();
+        let serialized = serde_json_wasm::to_string(&a).unwrap();
         assert_eq!(serialized, r#""12345""#);
 
-        let b: AmountU128<Denom> = serde_json::from_str(&serialized).unwrap();
+        let b: AmountU128<Denom> = serde_json_wasm::from_str(&serialized).unwrap();
         assert_eq!(a, b);
     }
 }

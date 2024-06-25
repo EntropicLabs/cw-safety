@@ -5,7 +5,7 @@ authors = ["Amit Prasad<mail@amitprasad.dev>"]
 edition = "2021"
 description = "Compile-time type-checked monetary operations"
 license = "Apache-2.0"
-repository = "https://github.com/AmitPr/monetary"
+repository = "https://github.com/EntropicLabs/cw-safety"
 
 [features]
 default = ["serde", "schemars"]
@@ -22,4 +22,4 @@ schemars = { workspace = true, optional = true }
 thiserror = "1"
 
 [dev-dependencies]
-serde_json = { workspace = true }
+serde-json-wasm = { workspace = true }

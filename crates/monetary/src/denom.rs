@@ -150,13 +150,13 @@ mod test {
         let a = Denom::<CurrencyA>::new("uusd".to_string());
         let b = Denom::<CurrencyB>::new("ubtc".to_string());
 
-        let json_a = serde_json::to_string(&a).unwrap();
-        let json_b = serde_json::to_string(&b).unwrap();
+        let json_a = serde_json_wasm::to_string(&a).unwrap();
+        let json_b = serde_json_wasm::to_string(&b).unwrap();
         assert_eq!(json_a, r#""uusd""#);
         assert_eq!(json_b, r#""ubtc""#);
 
-        let back_a: Denom<CurrencyA> = serde_json::from_str(&json_a).unwrap();
-        let back_b: Denom<CurrencyB> = serde_json::from_str(&json_b).unwrap();
+        let back_a: Denom<CurrencyA> = serde_json_wasm::from_str(&json_a).unwrap();
+        let back_b: Denom<CurrencyB> = serde_json_wasm::from_str(&json_b).unwrap();
         assert_eq!(a, back_a);
         assert_eq!(b, back_b);
     }

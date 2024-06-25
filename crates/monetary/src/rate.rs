@@ -148,10 +148,10 @@ mod test {
     #[test]
     fn serialization() {
         let rate = Rate::<A, B>::new(Decimal::percent(50)).unwrap();
-        let serialized = serde_json::to_string(&rate).unwrap();
+        let serialized = serde_json_wasm::to_string(&rate).unwrap();
         assert_eq!(serialized, r#""0.5""#);
 
-        let deserialized: Rate<A, B> = serde_json::from_str(&serialized).unwrap();
+        let deserialized: Rate<A, B> = serde_json_wasm::from_str(&serialized).unwrap();
         assert_eq!(rate, deserialized);
     }
 }

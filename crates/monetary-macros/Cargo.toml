@@ -1,6 +1,6 @@
 [package]
 name = "monetary-macros"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Amit Prasad<mail@amitprasad.dev>"]
 edition = "2021"
 description = "Macros for monetary crate"

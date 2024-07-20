@@ -27,6 +27,9 @@ pub fn denom(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Get the struct name
     let name = &input.ident;
 
+    // Get the `monetary` crate
+    let found_crate = crate_name("monetary").expect("Failed to find the `monetary` crate");
+
     // Prepare the list of derives
     let mut derives = vec![
         quote! { Clone },
@@ -41,21 +44,31 @@ pub fn denom(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     // Check for features and conditionally add derives
     #[cfg(feature = "serde")]
-    {
-        derives.push(quote! { ::serde::Serialize });
-        derives.push(quote! { ::serde::Deserialize });
+    match &found_crate {
+        FoundCrate::Itself => {
+            derives.push(quote! { crate::__derive_import::serde::Serialize });
+            derives.push(quote! { crate::__derive_import::serde::Deserialize });
+        }
+        FoundCrate::Name(crate_name) => {
+            let ident = Ident::new(crate_name, Span::call_site());
+            derives.push(quote! { #ident::__derive_import::serde::Serialize });
+            derives.push(quote! { #ident::__derive_import::serde::Deserialize });
+        }
     }
 
     #[cfg(feature = "schemars")]
-    {
-        derives.push(quote! { ::schemars::JsonSchema });
+    match &found_crate {
+        FoundCrate::Itself => {
+            derives.push(quote! { crate::__derive_import::schemars::JsonSchema });
+        }
+        FoundCrate::Name(crate_name) => {
+            let ident = Ident::new(crate_name, Span::call_site());
+            derives.push(quote! { #ident::__derive_import::schemars::JsonSchema });
+        }
     }
 
     // Combine all derives into one attribute
     let derives = quote! { #[derive(#(#derives),*)] };
-
-    // Get the `monetary` crate
-    let found_crate = crate_name("monetary").expect("Failed to find the `monetary` crate");
 
     // Generate the Denomination trait implementation
     let trait_impl = match found_crate {

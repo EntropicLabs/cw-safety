@@ -11,7 +11,7 @@ license = "Apache-2.0"
 repository = "https://github.com/EntropicLabs/cw-safety"
 
 [workspace.dependencies]
-monetary-macros = { version = "0.0.3", path = "crates/monetary-macros" }
+monetary-macros = { version = "0.0.4", path = "crates/monetary-macros" }
 monetary = { path = "crates/monetary" }
 
 events = { path = "crates/events" }

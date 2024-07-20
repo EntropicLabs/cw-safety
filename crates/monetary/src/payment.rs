@@ -10,7 +10,7 @@ pub fn must_pay<T>(info: &MessageInfo, denom: &Denom<T>) -> Result<AmountU128<T>
     }
 
     let coin = &info.funds[0];
-    if coin.amount.is_zero() {
+    if coin.amount.is_zero() || coin.denom != denom.repr() {
         return Err(MonetaryError::DenomNotFound(denom.to_string()));
     }
 
@@ -22,8 +22,12 @@ pub fn must_pay<T>(info: &MessageInfo, denom: &Denom<T>) -> Result<AmountU128<T>
 pub fn may_pay<T>(info: &MessageInfo, denom: &Denom<T>) -> Result<AmountU128<T>, MonetaryError> {
     if info.funds.is_empty() {
         Ok(AmountU128::new(Uint128::zero()))
-    } else if info.funds.len() == 1 && info.funds[0].denom == denom.repr() {
-        Ok(AmountU128::new(info.funds[0].amount))
+    } else if info.funds.len() == 1 {
+        if info.funds[0].denom == denom.repr() {
+            Ok(AmountU128::new(info.funds[0].amount))
+        } else {
+            Err(MonetaryError::DenomNotFound(denom.to_string()))
+        }
     } else {
         Err(MonetaryError::TooManyDenoms {})
     }

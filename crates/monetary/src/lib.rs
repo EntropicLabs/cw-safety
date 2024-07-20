@@ -14,6 +14,11 @@ pub use rate::*;
 
 pub use monetary_macros::*;
 
+pub mod __derive_import {
+    pub use schemars;
+    pub use serde;
+}
+
 #[cfg(test)]
 mod test;
 

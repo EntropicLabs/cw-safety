@@ -9,14 +9,14 @@ authors = ["Amit Prasad<mail@amitprasad.dev>"]
 description = "Safer CosmWasm contract libraries."
 license = "Apache-2.0"
 repository = "https://github.com/EntropicLabs/cw-safety"
-package.version = "0.0.6"
+package.version = "0.0.7"
 
 [workspace.dependencies]
-monetary-macros = { path = "crates/monetary-macros", version = "0.0.6" }
+monetary-macros = { path = "crates/monetary-macros", version = "0.0.7" }
 monetary = { path = "crates/monetary" }
 
 cw-events = { path = "crates/cw-events" }
-cw-events-macros = { path = "crates/cw-events-macros", version = "0.0.6" }
+cw-events-macros = { path = "crates/cw-events-macros", version = "0.0.7" }
 
 cosmwasm-std = { version = ">=1, <3" }
 cosmwasm-schema = { version = ">=1, <3" }

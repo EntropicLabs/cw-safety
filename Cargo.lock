@@ -364,7 +364,7 @@ dependencies = [
 
 [[package]]
 name = "cw-events"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "cosmwasm-schema",
  "cosmwasm-std",
@@ -374,7 +374,7 @@ dependencies = [
 
 [[package]]
 name = "cw-events-macros"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -645,7 +645,7 @@ checksum = "78ca9ab1a0babb1e7d5695e3530886289c18cf2f87ec19a575a0abdce112e3a3"
 
 [[package]]
 name = "monetary"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "cosmwasm-std",
  "monetary-macros",
@@ -657,7 +657,7 @@ dependencies = [
 
 [[package]]
 name = "monetary-macros"
-version = "0.0.6"
+version = "0.0.7"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",

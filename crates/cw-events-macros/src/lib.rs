@@ -99,7 +99,7 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
             fn as_event(&self) -> #cosmwasm_std_path::StdResult<#cosmwasm_std_path::Event> {
                 let as_json = #cosmwasm_std_path::to_json_string(&self)?;
                 #attrs
-                Ok(Event::new(self.type_name()).add_attribute("_json", as_json).add_attributes(attrs))
+                Ok(#cosmwasm_std_path::Event::new(self.type_name()).add_attribute("_json", as_json).add_attributes(attrs))
             }
         }
     };

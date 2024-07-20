@@ -77,7 +77,7 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
             let field = field.ident.as_ref().unwrap();
             let field_name = field.to_string();
             quote! {
-                (#field_name, self.#field.to_string())
+                (#field_name, #cosmwasm_std_path::to_json_string(&self.#field)?)
             }
         });
         quote! {

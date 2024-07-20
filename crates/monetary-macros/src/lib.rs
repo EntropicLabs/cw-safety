@@ -42,17 +42,22 @@ pub fn denom(_attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! { Default },
     ];
 
+    let mut attributes = vec![];
+
     // Check for features and conditionally add derives
     #[cfg(feature = "serde")]
     match &found_crate {
         FoundCrate::Itself => {
             derives.push(quote! { crate::__derive_import::serde::Serialize });
             derives.push(quote! { crate::__derive_import::serde::Deserialize });
+            attributes.push(quote! { #[serde(crate = "crate::__derive_import::serde")] });
         }
         FoundCrate::Name(crate_name) => {
             let ident = Ident::new(crate_name, Span::call_site());
             derives.push(quote! { #ident::__derive_import::serde::Serialize });
             derives.push(quote! { #ident::__derive_import::serde::Deserialize });
+            let serde_crate = format!("::{}::__derive_import::serde", crate_name);
+            attributes.push(quote! { #[serde(crate = #serde_crate)] });
         }
     }
 
@@ -60,15 +65,19 @@ pub fn denom(_attr: TokenStream, item: TokenStream) -> TokenStream {
     match &found_crate {
         FoundCrate::Itself => {
             derives.push(quote! { crate::__derive_import::schemars::JsonSchema });
+            attributes.push(quote! { #[schemars(crate = "crate::__derive_import::schemars")] });
         }
         FoundCrate::Name(crate_name) => {
             let ident = Ident::new(crate_name, Span::call_site());
             derives.push(quote! { #ident::__derive_import::schemars::JsonSchema });
+            let schemars_crate = format!("::{}::__derive_import::schemars", crate_name);
+            attributes.push(quote! { #[schemars(crate = #schemars_crate)] });
         }
     }
 
     // Combine all derives into one attribute
     let derives = quote! { #[derive(#(#derives),*)] };
+    let attributes = quote! { #(#attributes)* };
 
     // Generate the Denomination trait implementation
     let trait_impl = match found_crate {
@@ -86,6 +95,7 @@ pub fn denom(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // Combine the original struct definition with the derives and trait implementation
     let expanded = quote! {
         #derives
+        #attributes
         #input
         #trait_impl
     };

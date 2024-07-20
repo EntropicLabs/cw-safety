@@ -9,9 +9,10 @@ authors = ["Amit Prasad<mail@amitprasad.dev>"]
 description = "Safer CosmWasm contract libraries."
 license = "Apache-2.0"
 repository = "https://github.com/EntropicLabs/cw-safety"
+package.version = "0.0.6"
 
 [workspace.dependencies]
-monetary-macros = { version = "0.0.5", path = "crates/monetary-macros" }
+monetary-macros = { workspace.version = true, path = "crates/monetary-macros" }
 monetary = { path = "crates/monetary" }
 
 events = { path = "crates/events" }

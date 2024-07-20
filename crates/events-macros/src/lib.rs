@@ -23,6 +23,9 @@ impl Parse for EventAttr {
 /// - Ensures that the input item is a struct or enum
 /// - Derives Clone, Debug, Serialize, Deserialize, JsonSchema
 /// - Implements TypedEvent with fn type_name(&self) implemented using the argument
+/// - Implements TypedEvent::as_event:
+///     - If Struct: filling out the attributes with key-value pairs in the struct
+///     - For Both: adding the type_name as Event type, and adding a _json field with the serialized data
 pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Parse the input token stream into a syntax tree
     let input = parse_macro_input!(item as Item);
@@ -42,6 +45,11 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
             .into()
         }
     };
+    let item_struct = match &input {
+        Item::Struct(item_struct) => Some(item_struct),
+        Item::Enum(_) => None,
+        _ => unreachable!(),
+    };
     // Prepare the list of derives
     let found_crate = crate_name("events").expect("Failed to find the `events` crate");
     let mut derives = vec![quote! { Clone }, quote! { Debug }];
@@ -51,11 +59,12 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
         FoundCrate::Name(crate_name) => {
             let ident = Ident::new(&crate_name, Span::call_site());
-            quote! { #ident }
+            quote! { ::#ident }
         }
     };
-    let serde_path = quote! { #derive_ident::serde };
-    let schemars_path = quote! { #derive_ident::schemars };
+    let serde_path = quote! { #derive_ident::__derive_import::serde };
+    let schemars_path = quote! { #derive_ident::__derive_import::schemars };
+    let cosmwasm_std_path = quote! { #derive_ident::__derive_import::cosmwasm_std };
     derives.push(quote! { #serde_path::Serialize });
     derives.push(quote! { #serde_path::Deserialize });
     derives.push(quote! { #schemars_path::JsonSchema });
@@ -63,11 +72,34 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Combine all derives into one attribute
     let derives = quote! { #[derive(#(#derives),*)] };
 
+    let attrs = if let Some(item_struct) = item_struct {
+        let fields = item_struct.fields.iter().map(|field| {
+            let field = field.ident.as_ref().unwrap();
+            let field_name = field.to_string();
+            quote! {
+                (#field_name, self.#field.to_string())
+            }
+        });
+        quote! {
+            let attrs = vec![#(#fields,)*];
+        }
+    } else {
+        quote! {
+            let attrs = vec![];
+        }
+    };
+
     // Create a trait impl for TypedEvent
     let trait_impl = quote! {
         impl #derive_ident::TypedEvent for #ident {
             fn type_name(&self) -> String {
                 #event_type.to_string()
+            }
+
+            fn as_event(&self) -> StdResult<#cosmwasm_std_path::Event> {
+                let as_json = #cosmwasm_std_path::to_json_string(&self)?;
+                #attrs
+                Ok(Event::new(self.type_name()).add_attribute("_json", as_json).add_attributes(attrs))
             }
         }
     };

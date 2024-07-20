@@ -1,21 +1,23 @@
 use cosmwasm_schema::serde::{de::DeserializeOwned, Serialize};
-use cosmwasm_std::{to_json_string, Event, StdResult};
+use cosmwasm_std::{Event, StdResult};
 
-pub use cosmwasm_schema::schemars;
-pub use cosmwasm_schema::serde;
+pub mod __derive_import {
+    pub use cosmwasm_schema::schemars;
+    pub use cosmwasm_schema::serde;
+    pub use cosmwasm_std;
+}
 pub use cw_events_macros::event;
 
 pub trait TypedEvent: Serialize + DeserializeOwned {
     fn type_name(&self) -> String;
 
-    fn as_event(&self) -> StdResult<Event> {
-        let as_json = to_json_string(&self)?;
-        Ok(Event::new(self.type_name()).add_attribute("_json", as_json))
-    }
+    fn as_event(&self) -> StdResult<Event>;
 }
 
 #[cfg(test)]
 mod tests {
+    use cosmwasm_schema::schemars;
+
     use super::*;
 
     #[event("TestEvent")]
@@ -43,12 +45,16 @@ mod tests {
         assert!(result.is_ok());
         let cosmos_event = result.unwrap();
         assert_eq!(cosmos_event.ty, "TestEvent");
-        assert_eq!(cosmos_event.attributes.len(), 1);
+        assert_eq!(cosmos_event.attributes.len(), 3);
         assert_eq!(cosmos_event.attributes[0].key, "_json");
         assert_eq!(
             cosmos_event.attributes[0].value,
             r#"{"field1":"test","field2":42}"#
         );
+        assert_eq!(cosmos_event.attributes[1].key, "field1");
+        assert_eq!(cosmos_event.attributes[1].value, "test");
+        assert_eq!(cosmos_event.attributes[2].key, "field2");
+        assert_eq!(cosmos_event.attributes[2].value, "42");
     }
 
     #[test]

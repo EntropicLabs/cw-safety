@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "crates/events",
-    "crates/events-macros",
+    "crates/cw-events",
+    "crates/cw-events-macros",
     "crates/monetary",
     "crates/monetary-macros",
 ]
@@ -15,8 +15,8 @@ package.version = "0.0.6"
 monetary-macros = { path = "crates/monetary-macros", version = "0.0.6" }
 monetary = { path = "crates/monetary" }
 
-events = { path = "crates/events" }
-cw-events-macros = { path = "crates/events-macros", version = "0.0.6" }
+cw-events = { path = "crates/cw-events" }
+cw-events-macros = { path = "crates/cw-events-macros", version = "0.0.6" }
 
 cosmwasm-std = { version = ">=1, <3" }
 cosmwasm-schema = { version = ">=1, <3" }

@@ -51,7 +51,7 @@ pub fn event(attr: TokenStream, item: TokenStream) -> TokenStream {
         _ => unreachable!(),
     };
     // Prepare the list of derives
-    let found_crate = crate_name("events").expect("Failed to find the `events` crate");
+    let found_crate = crate_name("cw-events").expect("Failed to find the `cw-events` crate");
     let mut derives = vec![quote! { Clone }, quote! { Debug }];
     let derive_ident = match found_crate {
         FoundCrate::Itself => {

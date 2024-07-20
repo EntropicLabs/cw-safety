@@ -33,6 +33,10 @@ pub fn may_pay<T>(info: &MessageInfo, denom: &Denom<T>) -> Result<AmountU128<T>,
     }
 }
 
+pub fn amount<T>(info: &MessageInfo, denom: &Denom<T>) -> AmountU128<T> {
+    may_pay(info, denom).unwrap_or_else(|_| AmountU128::zero())
+}
+
 pub fn coin<T>(amount: impl Into<Uint128>, denom: &Denom<T>) -> CheckedCoin<T> {
     CheckedCoin::new(denom.clone(), AmountU128::new(amount.into()))
 }

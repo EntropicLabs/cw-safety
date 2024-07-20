@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{fmt::Display, marker::PhantomData};
 
 use cosmwasm_std::{Addr, BankMsg};
 
@@ -93,6 +93,14 @@ impl<T> Denom<T> {
         vec![self.coin(amount)]
     }
 
+    pub fn coin_cw(&self, amount: AmountU128<T>) -> cosmwasm_std::Coin {
+        self.coin(amount).into()
+    }
+
+    pub fn coins_cw(&self, amount: AmountU128<T>) -> Vec<cosmwasm_std::Coin> {
+        vec![self.coin(amount).into()]
+    }
+
     pub fn send(&self, to: &Addr, amount: AmountU128<T>) -> BankMsg {
         BankMsg::Send {
             to_address: to.to_string(),
@@ -101,15 +109,9 @@ impl<T> Denom<T> {
     }
 }
 
-impl<T> ToString for Denom<T> {
-    fn to_string(&self) -> String {
-        self.repr.clone()
-    }
-}
-
-impl<T> ToString for &Denom<T> {
-    fn to_string(&self) -> String {
-        self.repr.clone()
+impl<T> Display for Denom<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.repr)
     }
 }
 

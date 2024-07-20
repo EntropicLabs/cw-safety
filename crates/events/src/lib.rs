@@ -17,7 +17,6 @@ pub trait TypedEvent: Serialize + DeserializeOwned {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::mock_dependencies;
 
     #[event("TestEvent")]
     struct TestEvent {
@@ -36,7 +35,6 @@ mod tests {
 
     #[test]
     fn test_as_event() {
-        let mut deps = mock_dependencies();
         let event = TestEvent {
             field1: "test".to_string(),
             field2: 42,
